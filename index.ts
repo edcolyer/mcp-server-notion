@@ -214,5 +214,86 @@ server.tool(
   }
 );
 
+server.tool(
+  'get_notion_block',
+  'Retrieve a specific Notion block by its ID.',
+  {
+    blockId: z.string().describe('The ID of the Notion block to retrieve'),
+  },
+  async (params) => {
+    try {
+      // Retrieve the block
+      const block = await notion.blocks.retrieve({ 
+        block_id: params.blockId 
+      });
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(block, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error('Error retrieving Notion block:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error retrieving Notion block: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+server.tool(
+  'get_notion_block_children',
+  'Retrieve child blocks of a specific Notion block.',
+  {
+    blockId: z.string().describe('The ID of the parent Notion block'),
+    pageSize: z.number().optional().default(100).describe('Number of results to return (max 100)'),
+    startCursor: z.string().optional().describe('Cursor for pagination'),
+  },
+  async (params) => {
+    try {
+      // Prepare query parameters
+      const queryParams = {
+        block_id: params.blockId,
+        page_size: params.pageSize || 100,
+      } as any;
+      
+      // Add start_cursor if provided
+      if (params.startCursor) {
+        queryParams.start_cursor = params.startCursor;
+      }
+      
+      // Retrieve the block children
+      const response = await notion.blocks.children.list(queryParams);
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(response, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error('Error retrieving Notion block children:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error retrieving Notion block children: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
